@@ -78,12 +78,12 @@ void Speed::updateList(const unsigned int & numPoints, const long long & ns, sam
 
 void Speed::print() const {
 	const std::string strVT100ClearLine = "\33[2K\r";
-	std::cout << strVT100ClearLine << "Speed: " << formatSpeed(this->getSpeed());
+	std::cerr << strVT100ClearLine << "Speed: " << formatSpeed(this->getSpeed());
 	
 	// std::map is sorted by key so we'll always have the devices in numerical order
 	for (auto it = m_mDeviceSamples.begin(); it != m_mDeviceSamples.end(); ++it) {
-		std::cout << " GPU" << it->first << ": " << formatSpeed(this->getSpeed(it->second));
+		std::cerr << " GPU" << it->first << ": " << formatSpeed(this->getSpeed(it->second));
 	}
 
-	std::cout << "\r" << std::flush;
+	std::cerr << "\r" << std::flush;
 }

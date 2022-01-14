@@ -79,28 +79,30 @@ __kernel void eradicate2_iterate(__global result * const pResult, __global const
 	}
 }
 
-void eradicate2_result_update(const uchar * const H, __global result * const pResult, const uchar score, const uchar scoreMax, const uint deviceIndex, const uint round) {
-	if (score && score > scoreMax) {
-		const uchar hasResult = atomic_inc(&pResult[score].found); // NOTE: If "too many" results are found it'll wrap around to 0 again and overwrite last result. Only relevant if global worksize exceeds MAX(uint).
+void eradicate2_result_update(const uchar * const H, __global result * const pResult, const uchar score, uchar scoreMax, const uint deviceIndex, const uint round) {
+	if (score > 5) {
+        uchar hasResult = score;
+        while (hasResult) {
+            hasResult = atomic_cmpxchg(&pResult[scoreMax].found, 0, score); // NOTE: If "too many" results are found it'll wrap around to 0 again and overwrite last result. Only relevant if global worksize exceeds MAX(uint).
+            if (hasResult) {
+                scoreMax++;
+            }
+        }
+        // Reconstruct state with hash and extract salt
+        ethhash h = { .q = { ERADICATE2_INITHASH } };
+        h.d[6] += deviceIndex;
+        h.d[7] += get_global_id(0);
+        h.d[8] += round;
 
-		// Save only one result for each score, the first.
-		if (hasResult == 0) {
-			// Reconstruct state with hash and extract salt
-			ethhash h = { .q = { ERADICATE2_INITHASH } };
-			h.d[6] += deviceIndex;
-			h.d[7] += get_global_id(0);
-			h.d[8] += round;
+        ethhash be;
 
-			ethhash be;
+        for (int i = 0; i < 32; ++i) {
+            pResult[scoreMax].salt[i] = h.b[i + 21];
+        }
 
-			for (int i = 0; i < 32; ++i) {
-				pResult[score].salt[i] = h.b[i + 21];
-			}
-
-			for (int i = 0; i < 20; ++i) {
-				pResult[score].hash[i] = H[i];
-			}
-		}
+        for (int i = 0; i < 20; ++i) {
+            pResult[scoreMax].hash[i] = H[i];
+        }
 	}
 }
 

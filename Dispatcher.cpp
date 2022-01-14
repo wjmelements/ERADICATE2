@@ -165,25 +165,21 @@ void Dispatcher::enqueueKernelDevice(Device & d, cl_kernel & clKernel, size_t wo
 
 void Dispatcher::deviceDispatch(Device & d) {
 	// Check result
-	for (auto i = ERADICATE2_MAX_SCORE; i > m_clScoreMax; --i) {
+	for (auto i = d.m_clScoreMax; i < ERADICATE2_MAX_SCORE; i++) {
 		result & r = d.m_memResult[i];
 
-		if (r.found > 0 && i >= d.m_clScoreMax) {
-			d.m_clScoreMax = i;
-			CLMemory<cl_uchar>::setKernelArg(d.m_kernelIterate, 2, d.m_clScoreMax);
+		if (!r.found) {
+            break;
+        }
+        d.m_clScoreMax = i + 1;
+        CLMemory<cl_uchar>::setKernelArg(d.m_kernelIterate, 2, d.m_clScoreMax);
 
-			std::lock_guard<std::mutex> lock(m_mutex);
-			if (i >= m_clScoreMax) {
-				m_clScoreMax = i;
-
-				// TODO: Add quit condition
-
-				printResult(r, i, timeStart);
-			}
-
-			break;
-		}
+        std::lock_guard<std::mutex> lock(m_mutex);
+        printResult(r, r.found, timeStart);
 	}
+    if (d.m_clScoreMax >= ERADICATE2_MAX_SCORE) {
+        m_quit = true;
+    }
 
 	d.m_parent.m_speed.update(d.m_parent.m_size, d.m_index);
 
@@ -192,6 +188,7 @@ void Dispatcher::deviceDispatch(Device & d) {
 		if (--m_countRunning == 0) {
 			clSetUserEventStatus(m_eventFinished, CL_COMPLETE);
 		}
+        exit(0);
 	} else {
 		cl_event event;
 		d.m_memResult.read(false, &event);

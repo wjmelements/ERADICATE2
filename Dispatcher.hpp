@@ -68,8 +68,6 @@ class Dispatcher {
 		void enqueueKernel(cl_command_queue & clQueue, cl_kernel & clKernel, size_t worksizeGlobal, const size_t worksizeLocal, cl_event * pEvent);
 		void enqueueKernelDevice(Device & d, cl_kernel & clKernel, size_t worksizeGlobal, cl_event * pEvent);
 
-		void printSpeed();
-
 	private:
 		static void CL_CALLBACK staticCallback(cl_event event, cl_int event_command_exec_status, void * user_data);
 
